@@ -235,7 +235,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- State Management ---
+# --- State Management ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 if 'stage' not in st.session_state:
     st.session_state.stage = 'input'
 if 'profile_text' not in st.session_state:
@@ -260,7 +260,7 @@ if 'hashtag_count' not in st.session_state:
     st.session_state.hashtag_count = 5
 
 
-# --- Helper Functions ---
+# --- Helper Functions ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 def pdf_to_text(file):
     """Extracts text from an uploaded PDF file."""
     try:
@@ -276,7 +276,7 @@ def pdf_to_text(file):
 def reset_app():
     """Resets the session state to start over."""
     for key in list(st.session_state.keys()):
-        if key not in ['stage']:
+        if key not in ['stage']:  # Keep some keys if needed
             del st.session_state[key]
     st.session_state.stage = 'input'
     st.rerun()
@@ -316,20 +316,24 @@ def get_char_count_class(count, limit):
         return "danger"
 
 def display_engagement_metrics(engagement_data):
-    """Display engagement potential metrics."""
+    """Display engagement potential metrics with detailed explanations."""
     if not engagement_data:
         return
     
+    # Display metrics in grid
     col1, col2, col3, col4 = st.columns(4)
     
     metrics = [
-        ("Hook Strength", engagement_data.get("hook_strength", {}).get("score", 0)),
-        ("Content Value", engagement_data.get("content_value", {}).get("score", 0)),
-        ("Discussion", engagement_data.get("discussion_potential", {}).get("score", 0)),
-        ("Shareability", engagement_data.get("shareability", {}).get("score", 0))
+        ("Hook Strength", engagement_data.get("hook_strength", {})),
+        ("Content Value", engagement_data.get("content_value", {})), 
+        ("Discussion", engagement_data.get("discussion_potential", {})),
+        ("Shareability", engagement_data.get("shareability", {}))
     ]
     
-    for i, (col, (label, score)) in enumerate(zip([col1, col2, col3, col4], metrics)):
+    for i, (col, (label, metric_data)) in enumerate(zip([col1, col2, col3, col4], metrics)):
+        score = metric_data.get("score", 0)
+        reason = metric_data.get("reason", "Analysis unavailable")
+        
         with col:
             st.markdown(f"""
             <div class="metric-box">
@@ -337,9 +341,44 @@ def display_engagement_metrics(engagement_data):
                 <div class="metric-label">{label}</div>
             </div>
             """, unsafe_allow_html=True)
+    
+    # Display detailed explanations below the scores
+    st.markdown("### 📊 Detailed Analysis")
+    
+    for label, metric_data in metrics:
+        score = metric_data.get("score", 0)
+        reason = metric_data.get("reason", "Analysis unavailable")
+        
+        # Color coding for scores
+        if score >= 4:
+            color = "#28a745"  # Green
+            icon = "🟢"
+        elif score >= 3:
+            color = "#ffc107"  # Yellow
+            icon = "🟡"
+        else:
+            color = "#dc3545"  # Red
+            icon = "🔴"
+        
+        st.markdown(f"""
+        <div style="
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            border-left: 4px solid {color};
+            background-color: #f8f9fa;
+            border-radius: 6px;
+        ">
+            <h5 style="color: {color}; margin: 0 0 0.5rem 0;">
+                {icon} {label}: {score}/5
+            </h5>
+            <p style="margin: 0; color: #2D2D2D; font-size: 0.9rem;">
+                {reason}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
 
-# --- Main App Header ---
+# --- Main App Header ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 st.markdown("""
 <div class="main-header">
     <h1>🚀 AI LinkedIn Post Generator</h1>
@@ -350,7 +389,7 @@ st.markdown("""
 # Step indicator
 st.markdown(get_step_indicator(), unsafe_allow_html=True)
 
-# Get User Input -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Get User Input ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 if st.session_state.stage == 'input':
     st.markdown("## 📝 Step 1: Tell Me About Your Professional Background")
     
@@ -401,7 +440,7 @@ if st.session_state.stage == 'input':
                 st.session_state.stage = 'recommend'
                 st.rerun()
 
-# Recommend Topics -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Recommend Topics ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 elif st.session_state.stage == 'recommend':
     st.markdown("## 🎯 Step 2: Choose Your Post Topic")
     
@@ -459,7 +498,7 @@ elif st.session_state.stage == 'recommend':
             else:
                 st.warning("⚠️ Please enter a custom topic.")
 
-# Refine Settings -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Refine Settings ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 elif st.session_state.stage == 'refine':
     st.markdown("## ⚙️ Step 3: Customize Your Post Settings")
     
@@ -563,7 +602,7 @@ elif st.session_state.stage == 'refine':
             st.session_state.stage = 'generate'
             st.rerun()
 
-# Generate and Display Posts -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Generate and Display Posts ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 elif st.session_state.stage == 'generate':
     st.markdown("## 🎉 Step 4: Your Personalized LinkedIn Posts")
     
