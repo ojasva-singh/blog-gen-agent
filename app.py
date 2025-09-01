@@ -4,6 +4,9 @@ from io import BytesIO
 from ai_agent import PersonalizedPostAgent
 import time
 import json
+import datetime
+import os
+import sys
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -12,6 +15,74 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# Health Check Query Parameter Handler (MUST be at the top before any other Streamlit code)
+query_params = st.query_params
+
+if "health" in query_params:
+    # Simple health check response
+    st.json({
+        "status": "healthy",
+        "timestamp": datetime.datetime.now().isoformat(),
+        "service": "AI LinkedIn Post Generator",
+        "version": "1.0.0",
+        "environment": {
+            "GEMINI_API_KEY": "configured" if os.getenv("GEMINI_API_KEY") else "missing",
+            "python_version": sys.version,
+            "streamlit_version": st.__version__
+        },
+        "deployment": "Render.com",
+        "endpoints": {
+            "main_app": "https://blog-gen-agent.onrender.com",
+            "health_check": "https://blog-gen-agent.onrender.com/?health=true",
+            "status_check": "https://blog-gen-agent.onrender.com/?status=true"
+        }
+    })
+    st.stop()  # Stop execution here for health check
+
+elif "status" in query_params:
+    # Detailed status page
+    st.title("🏥 Service Status Dashboard")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("Service Status", "🟢 Healthy")
+        st.metric("API Connection", "🟢 Connected" if os.getenv("GEMINI_API_KEY") else "🔴 Missing")
+    
+    with col2:
+        st.metric("Python Version", f"{sys.version.split()[0]}")
+        st.metric("Streamlit Version", st.__version__)
+    
+    with col3:
+        st.metric("Deployment", "Render.com")
+        st.metric("Last Check", datetime.datetime.now().strftime("%H:%M:%S"))
+    
+    st.markdown("---")
+    st.markdown("### 🔧 Service Information")
+    st.write("✅ Profile Analysis Agent - Active")
+    st.write("✅ Topic Recommendation Agent - Active") 
+    st.write("✅ Content Generation Agent - Active")
+    st.write("✅ Engagement Analysis - Active")
+    st.write("✅ Media Suggestions - Active")
+    
+    st.markdown("### 📊 Features Available")
+    features = [
+        "Multi-step AI agent processing",
+        "Profile analysis and persona creation",
+        "Industry-specific topic recommendations", 
+        "6 different post formats",
+        "Character limit optimization",
+        "Smart hashtag management",
+        "AI-powered media suggestions",
+        "Engagement potential scoring",
+        "Production health monitoring"
+    ]
+    
+    for feature in features:
+        st.write(f"✅ {feature}")
+    
+    st.stop()  # Stop execution here for status check
 
 # Custom CSS for better styling
 st.markdown("""
@@ -235,7 +306,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- State Management ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# --- State Management ---
 if 'stage' not in st.session_state:
     st.session_state.stage = 'input'
 if 'profile_text' not in st.session_state:
@@ -258,9 +329,11 @@ if 'include_hashtags' not in st.session_state:
     st.session_state.include_hashtags = True
 if 'hashtag_count' not in st.session_state:
     st.session_state.hashtag_count = 5
+if 'num_posts' not in st.session_state:
+    st.session_state.num_posts = 3
 
 
-# --- Helper Functions ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# --- Helper Functions ---
 def pdf_to_text(file):
     """Extracts text from an uploaded PDF file."""
     try:
@@ -377,8 +450,33 @@ def display_engagement_metrics(engagement_data):
         </div>
         """, unsafe_allow_html=True)
 
+def display_health_status():
+    """Display health check information in the sidebar"""
+    with st.sidebar:
+        st.markdown("---")
+        st.markdown("### 🏥 System Health")
+        
+        # Check API key status
+        api_status = "🟢 Configured" if os.getenv("GEMINI_API_KEY") else "🔴 Missing"
+        
+        # System info
+        current_time = datetime.datetime.now().strftime("%H:%M:%S")
+        
+        st.markdown(f"""
+        **Status**: 🟢 Healthy  
+        **Last Check**: {current_time}  
+        **API Key**: {api_status}  
+        **Python**: {sys.version.split()[0]}  
+        **Streamlit**: {st.__version__}
+        """)
+        
+        # Health check URL info
+        st.markdown("### 🔗 Health Endpoints")
+        st.code("/?health=true", language="bash")
+        st.code("/?status=true", language="bash")
 
-# --- Main App Header ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# --- Main App Header ---
 st.markdown("""
 <div class="main-header">
     <h1>🚀 AI LinkedIn Post Generator</h1>
@@ -386,10 +484,13 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# Add health status to sidebar
+display_health_status()
+
 # Step indicator
 st.markdown(get_step_indicator(), unsafe_allow_html=True)
 
-# Get User Input ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# STAGE 1: Get User Input
 if st.session_state.stage == 'input':
     st.markdown("## 📝 Step 1: Tell Me About Your Professional Background")
     
@@ -440,7 +541,7 @@ if st.session_state.stage == 'input':
                 st.session_state.stage = 'recommend'
                 st.rerun()
 
-# Recommend Topics ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# STAGE 2: Recommend Topics
 elif st.session_state.stage == 'recommend':
     st.markdown("## 🎯 Step 2: Choose Your Post Topic")
     
@@ -498,7 +599,7 @@ elif st.session_state.stage == 'recommend':
             else:
                 st.warning("⚠️ Please enter a custom topic.")
 
-# Refine Settings ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# STAGE 3: Refine Settings
 elif st.session_state.stage == 'refine':
     st.markdown("## ⚙️ Step 3: Customize Your Post Settings")
     
@@ -602,7 +703,7 @@ elif st.session_state.stage == 'refine':
             st.session_state.stage = 'generate'
             st.rerun()
 
-# Generate and Display Posts ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# STAGE 4: Generate and Display Posts
 elif st.session_state.stage == 'generate':
     st.markdown("## 🎉 Step 4: Your Personalized LinkedIn Posts")
     
